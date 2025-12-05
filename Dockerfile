@@ -1,5 +1,5 @@
-# Stage 1: Building the application
-FROM node:20-alpine AS builder
+## Stage 1: Build static web assets
+FROM node:20-bullseye AS builder
 
 # Build argument for PostHog API key with default empty value
 ARG POSTHOG_API_KEY=""
@@ -7,25 +7,33 @@ ARG REVENUE_CAT_STRIPE=""
 
 WORKDIR /app
 
+# Ensure native modules (e.g. sharp) can install without hanging
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy package.json and yarn.lock
 COPY patches ./patches
 COPY package.json yarn.lock ./
 
 # Install dependencies
+ENV CI=true \
+    EXPO_NON_INTERACTIVE=1 \
+    EXPO_NO_TELEMETRY=1
 RUN yarn install --frozen-lockfile --ignore-engines
 
 # Copy the rest of the application code
 COPY sources ./sources
 COPY public ./public
 COPY plugins ./plugins
-COPY * ./
+COPY . ./
 
 # Build the application for web in production mode
 ENV NODE_ENV=production
 ENV APP_ENV=production
 ENV EXPO_PUBLIC_POSTHOG_API_KEY=$POSTHOG_API_KEY
 ENV EXPO_PUBLIC_REVENUE_CAT_STRIPE=$REVENUE_CAT_STRIPE
-RUN yarn expo export --platform web --output-dir dist
+RUN NODE_OPTIONS="--max-old-space-size=4096" yarn expo export --platform web --output-dir dist
 
 # Debug: List what's in dist to see if public files are there
 RUN ls -la dist/

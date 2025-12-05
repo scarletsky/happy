@@ -161,6 +161,7 @@
     "babel-plugin-transform-remove-console": "^6.9.4",
     "patch-package": "^8.0.0",
     "react-test-renderer": "19.0.0",
+    "sharp": "0.33.5",
     "tsx": "^4.20.4",
     "typescript": "~5.9.2"
   },
